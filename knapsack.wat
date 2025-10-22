@@ -8,6 +8,9 @@
   ;; wasi_unstable::fd_write(descriptor int, iovec *[]IOVec, iovec_count int, written *int) error
   (import "wasi_unstable" "fd_write" (func $wasi_unstable::fd_write (param i32 i32 i32 i32) (result i32)))
 
+  ;; wasi_unstable::random_get(buffer *[]byte, length int) error
+  (import "wasi_unstable" "random_get" (func $wasi_unstable::random_get (param i32 i32) (result i32)))
+
 
   ;; ██████   █████  ████████  █████  
   ;; ██   ██ ██   ██    ██    ██   ██ 
@@ -29,6 +32,9 @@
   ;; Dirty area for $Itoa
   (data (i32.const 16) "") ;; (16)
 
+  ;; *Weights
+  (global $weights i32 (i32.const 100))
+
   ;; Weights (1 byte wide) [u8; 10]
   (data (i32.const 100) "\03") ;; 3
   (data (i32.const 101) "\08") ;; 8
@@ -40,6 +46,8 @@
   (data (i32.const 107) "\0D") ;; 13
   (data (i32.const 108) "\0A") ;; 10
   (data (i32.const 109) "\09") ;; 9
+
+  (global $values i32 (i32.const 110))
 
   ;; Values (2 bytes wide) [u16; 10]
   ;; The bytes are little-endian, so keep that in mind.
@@ -58,16 +66,27 @@
   (start $Main)
   (func $Main
     (call $PrintGeneration (call $GetWeight (i32.const 9)) (call $GetValue (i32.const 9)))
+
+    (call $wasi_unstable::random_get (i32.const 130) (i32.const 2))
+    if unreachable end
+
+    (call $PrintGeneration (i32.const 0) (call $GetValue (i32.const 10)))
   )
 
   (func $GetWeight (param $idx i32) (result i32)
-    (i32.add (i32.const 100) (local.get $idx))
+    (i32.add
+      (global.get $weights)
+      (local.get $idx)
+    )
     i32.load8_u
   )
 
   (func $GetValue (param $idx i32) (result i32)
     ;; Use a idx << 1 to multiply idx by 2
-    (i32.add (i32.const 110) (i32.shl (local.get $idx) (i32.const 1)))
+    (i32.add
+      (global.get $values)
+      (i32.shl (local.get $idx) (i32.const 1))
+    )
     i32.load16_u
   )
 
