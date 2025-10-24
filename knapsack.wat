@@ -293,7 +293,7 @@
   ;;
   ;; I have debated whether or not it's worth changing my indexing functions
   ;; to be a single function like: Index(base, index, sizeof) *void
-  ;; but make my main function slightly slimmer.                          
+  ;; However, they make my main function slightly slimmer.                          
 
   ;; WeightAt(n int) *byte
   ;; Indexes into the weights, returning a pointer to the correct one
