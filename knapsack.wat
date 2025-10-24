@@ -79,6 +79,8 @@
   ;; ██████  ███████ ███████ 
   ;; ██   ██      ██      ██ 
   ;; ██████  ███████ ███████ 
+  ;;
+  ;; This section is filled programmatically.
 
   ;; Dirty area for $Write
   (data (i32.const 0) "\00\00\00\00") ;; string ptr
@@ -124,13 +126,23 @@
   ;;   Fill Random Segment with Random Data
   ;;   i := 0
   ;;   Calculate the Population's fitnesses
+  ;;   Print the fitness of the fittest member
   ;;   Loop
   ;;     Select Left Parent
-  ;;
-  ;;     
-  ;;     
-  ;;     
-  ;;     
+  ;;     Select Right Parent
+  ;;     Left, Right = Crossover(Left, Right)
+  ;;     Mutate Left
+  ;;     Mutate Right
+  ;;     Next Generation <- Left, Right
+  ;;     i += 2
+  ;;     If i < Population Count Then Repeat
+  ;;   End
+  ;;   Copy Next Generation -> Population
+  ;;   generation += 1
+  ;;   If generation < Max Generations Then Repeat
+  ;; End
+  ;; Calculate fitnesses of the final generation
+  ;; Print the fitness of the fittest member in the final generation
 
 
   (start $Main)
