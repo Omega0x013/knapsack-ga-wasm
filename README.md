@@ -9,6 +9,23 @@ This program was run and tested using [`wasmtime`](https://github.com/bytecodeal
 wasmtime knapsack.wat
 ```
 
+## Docs: Program Output
+
+`knapsack.wat` outputs its results to `STDOUT` (file descriptor `1`).
+Each line looks something like this:
+```txt
+12: 2140
+```
+It's composed of two parts:
+```txt
+{Generation}: {Fitness}
+```
+
+`Generation` is number of rounds of selection, crossing over, and mutation the population has gone through,
+starting from 0 and working its way up to `$generationCount`.
+
+`Fitness` is the fitness of the fittest member of the current population. This number should go up over time, if the GA is working properly.
+
 ## Docs: Memory Usage
 
 Here is a not-entirely-to-scale diagram of the contents of my program's linear memory:
