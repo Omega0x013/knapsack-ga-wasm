@@ -9,6 +9,17 @@ This program was run and tested using [`wasmtime`](https://github.com/bytecodeal
 wasmtime knapsack.wat
 ```
 
+## Docs: Program Parameters
+
+You can adjust several characteristics about the genetic algorithm to see how they affect finding the solution and solution convergence:
+- `$generationCount` - Total run time of the program. If you're failing to find a solution consistently, try upping this until you do, so you can see how the other factors are impacting performance. Default is 20.
+- `$arenaCount` - Number of individuals per tournament. Larger number causes your GA to converge on a solution faster. Default is 3.
+- `$crossoverThreshold` - Chance out of 65536 of crossover occurring. Default is 52428 (80%).
+- `$mutationThreshold` - Chance out of 65536 of each bit in a genome mutating. Default is 655 (1%).
+For crossing over and mutation rates, higher values tend to lead to slower convergence.
+You can find these variables on lines 57-60 of [`knapsack.wat`](knapsack.wat).
+Fiddle with the values and then run the program again.
+
 ## Docs: Program Output
 
 `knapsack.wat` outputs its results to `STDOUT` (file descriptor `1`).
@@ -30,17 +41,6 @@ It's composed of two parts:
 starting from 0 and working its way up to `$generationCount`.
 
 `Fitness` is the fitness of the fittest member of the current population. This number should go up over time, if the GA is working properly.
-
-## Docs: Program Parameters
-
-You can adjust several characteristics about the genetic algorithm to see how they affect finding the solution and solution convergence:
-- `$generationCount` - Total run time of the program. If you're failing to find a solution consistently, try upping this until you do, so you can see how the other factors are impacting performance. Default is 20.
-- `$arenaCount` - Number of individuals per tournament. Larger number causes your GA to converge on a solution faster. Default is 3.
-- `$crossoverThreshold` - Chance out of 65536 of crossover occurring. Default is 52428 (80%).
-- `$mutationThreshold` - Chance out of 65536 of each bit in a genome mutating. Default is 655 (1%).
-For crossing over and mutation rates, higher values tend to lead to slower convergence.
-You can find these variables on lines 57-60 of [`knapsack.wat`](knapsack.wat).
-Fiddle with the values and then run the program again.
 
 ## Docs: Memory Usage
 
