@@ -10,3 +10,25 @@ wasmtime knapsack.wat
 ```
 
 ## Docs: Memory Usage
+
+Here is a not-entirely-to-scale diagram of the contents of my program's linear memory:
+
+![Only a tiny portion of the memory is initialised](docs/memory.svg)
+
+The intialised portion is hardcoded, and is filled when the program is first loaded.
+It contains the scenario data and the printable strings ": " and "\n".
+It only contains 33 bytes of data, but has 100 bytes of space in case I need to add more.
+
+The uninitialised portion is filled programmatically.
+1. The section in contains buffers for the I/O functions.
+2. `population` is a massive array containing pairs of genomes and fitnesses.
+3. `next` has the same structure as `population`, except that its fitnesses are never filled.
+At the beginning of the program, `population` is filled with random numbers,
+seeding the individuals for the first generation.
+Bounded by a contiguous section called `randomSegment`,
+the three yellow boxes indicate memory segments used to make random decisions throughout the program:
+4. `selectionRandom` is used in three `u16`s to select the individuals in each tournament.
+5. `crossoverRandom` is used in two parts:
+  1. A `u16` to decide whether or not crossing over will occur
+  2. A `u32` to fairly decide the crossing point
+6. `mutationRandom` is used as 10 `u16`s to decide whether or not to flip each of the 10 bits in a genome.

@@ -24,23 +24,6 @@
 ;; https://patorjk.com/software/taag/#p=display&f=ANSI+Regular&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
 
 (module
-  ;; ██████   █████  ██████   █████  ███    ███ ███████ ████████ ███████ ██████  ███████ 
-  ;; ██   ██ ██   ██ ██   ██ ██   ██ ████  ████ ██         ██    ██      ██   ██ ██      
-  ;; ██████  ███████ ██████  ███████ ██ ████ ██ █████      ██    █████   ██████  ███████ 
-  ;; ██      ██   ██ ██   ██ ██   ██ ██  ██  ██ ██         ██    ██      ██   ██      ██ 
-  ;; ██      ██   ██ ██   ██ ██   ██ ██      ██ ███████    ██    ███████ ██   ██ ███████ 
-
-  ;;
-  ;; GA Parameters
-  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
-  (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
-  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
-  (global $generationCount i32 (i32.const 20)) ;; generations to run for
-  ;;
-  ;; Scenario Parameters
-  (global $capacity i32 (i32.const 35)) ;; 35u max weight
-  ;;
-
   ;; ██████ ███    ███ ██████   ██████  ██████  ████████ ███████ 
   ;;   ██   ████  ████ ██   ██ ██    ██ ██   ██    ██    ██      
   ;;   ██   ██ ████ ██ ██████  ██    ██ ██████     ██    ███████ 
@@ -62,6 +45,23 @@
 
   (memory 1) ;; Only uses ~7KiB out of the 64KiB available
   (export "memory" (memory 0)) ;; export the 0th memory
+
+  ;; ██████   █████  ██████   █████  ███    ███ ███████ ████████ ███████ ██████  ███████ 
+  ;; ██   ██ ██   ██ ██   ██ ██   ██ ████  ████ ██         ██    ██      ██   ██ ██      
+  ;; ██████  ███████ ██████  ███████ ██ ████ ██ █████      ██    █████   ██████  ███████ 
+  ;; ██      ██   ██ ██   ██ ██   ██ ██  ██  ██ ██         ██    ██      ██   ██      ██ 
+  ;; ██      ██   ██ ██   ██ ██   ██ ██      ██ ███████    ██    ███████ ██   ██ ███████ 
+
+  ;;
+  ;; GA Parameters
+  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
+  (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
+  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
+  (global $generationCount i32 (i32.const 20)) ;; generations to run for
+  ;;
+  ;; Scenario Parameters
+  (global $capacity i32 (i32.const 35)) ;; 35u max weight
+  ;;
 
   ;; ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
   ;; ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
@@ -97,8 +97,8 @@
   (data (i32.const 28) "\5c\01") ;; 348
 
   ;; Printable strings
-  (data (i32.const 30) " : ") ;; (3)
-  (data (i32.const 33) "\n") ;; (1)
+  (data (i32.const 30) ": ") ;; (2)
+  (data (i32.const 32) "\n") ;; (1)
 
   ;; ██    ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
   ;; ██    ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
@@ -726,7 +726,7 @@
     if unreachable end
 
     ;; if Write(1, *" : ", 3) != nil: throw
-    (call $Write (i32.const 1) (i32.const 30) (i32.const 3))
+    (call $Write (i32.const 1) (i32.const 30) (i32.const 2))
     if unreachable end
 
     ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
@@ -736,7 +736,7 @@
     if unreachable end
 
     ;; if Write(1, *"\n", 1) != nil: throw
-    (call $Write (i32.const 1) (i32.const 33) (i32.const 1))
+    (call $Write (i32.const 1) (i32.const 32) (i32.const 1))
     if unreachable end
   )
 
