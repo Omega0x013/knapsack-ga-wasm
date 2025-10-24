@@ -44,50 +44,49 @@
   ;; ██████  ██   ██    ██    ██   ██ 
 
   (memory 1) ;; Only uses ~7KiB out of the 64KiB available
-  (export "memory" (memory 0))
+  (export "memory" (memory 0)) ;; export the 0th memory
 
-  ;; GA Parameters
   ;;
+  ;; GA Parameters
   (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
   (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
   (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
   (global $generationCount i32 (i32.const 20)) ;; generations to run for
   ;;
-  ;;
-
-  ;; Printable strings
-  (data (i32.const 12) " : ") ;; (3)
-  (data (i32.const 15) "\n") ;; (1)
-
   ;; Scenario Parameters
   (global $capacity i32 (i32.const 35)) ;; 35u max weight
+  ;;
 
-  (global $weights i32 (i32.const 100)) ;; *Weights
+  (global $weights i32 (i32.const 0)) ;; *Weights
   ;; Weights (1 byte wide) [u8; 10]
-  (data (i32.const 100) "\03") ;; 3
-  (data (i32.const 101) "\08") ;; 8
-  (data (i32.const 102) "\02") ;; 2
-  (data (i32.const 103) "\09") ;; 9
-  (data (i32.const 104) "\07") ;; 7
-  (data (i32.const 105) "\01") ;; 1
-  (data (i32.const 106) "\08") ;; 8
-  (data (i32.const 107) "\0D") ;; 13
-  (data (i32.const 108) "\0A") ;; 10
-  (data (i32.const 109) "\09") ;; 9
+  (data (i32.const 0) "\03") ;; 3
+  (data (i32.const 1) "\08") ;; 8
+  (data (i32.const 2) "\02") ;; 2
+  (data (i32.const 3) "\09") ;; 9
+  (data (i32.const 4) "\07") ;; 7
+  (data (i32.const 5) "\01") ;; 1
+  (data (i32.const 6) "\08") ;; 8
+  (data (i32.const 7) "\0D") ;; 13
+  (data (i32.const 8) "\0A") ;; 10
+  (data (i32.const 9) "\09") ;; 9
 
-  (global $values i32 (i32.const 110)) ;; *Values
+  (global $values i32 (i32.const 10)) ;; *Values
   ;; Values (2 bytes wide) [u16; 10]
   ;; The bytes are little-endian, which confused me a bit
-  (data (i32.const 110) "\7e\00") ;; 126
-  (data (i32.const 112) "\9a\00") ;; 154
-  (data (i32.const 114) "\00\01") ;; 256
-  (data (i32.const 116) "\0e\02") ;; 526
-  (data (i32.const 118) "\84\01") ;; 388
-  (data (i32.const 120) "\f5\00") ;; 245
-  (data (i32.const 122) "\d2\00") ;; 210
-  (data (i32.const 124) "\ba\01") ;; 442
-  (data (i32.const 126) "\9f\02") ;; 671
-  (data (i32.const 128) "\5c\01") ;; 348
+  (data (i32.const 10) "\7e\00") ;; 126
+  (data (i32.const 12) "\9a\00") ;; 154
+  (data (i32.const 14) "\00\01") ;; 256
+  (data (i32.const 16) "\0e\02") ;; 526
+  (data (i32.const 18) "\84\01") ;; 388
+  (data (i32.const 20) "\f5\00") ;; 245
+  (data (i32.const 22) "\d2\00") ;; 210
+  (data (i32.const 24) "\ba\01") ;; 442
+  (data (i32.const 26) "\9f\02") ;; 671
+  (data (i32.const 28) "\5c\01") ;; 348
+
+  ;; Printable strings
+  (data (i32.const 30) " : ") ;; (3)
+  (data (i32.const 33) "\n") ;; (1)
 
   ;; ██████  ███████ ███████ 
   ;; ██   ██ ██      ██      
@@ -97,17 +96,12 @@
   ;;
   ;; This section is filled programmatically.
 
-  ;; Dirty area for $Write
-  (data (i32.const 0) "\00\00\00\00") ;; string ptr
-  (data (i32.const 4) "\00\00\00\00") ;; string length
-  (data (i32.const 8) "\00\00\00\00") ;; nwritten
-
-  (global $writePtr i32 (i32.const 0)) ;; (4) *[]byte
-  (global $writeLen i32 (i32.const 4)) ;; (4) int
-  (global $writeRet i32 (i32.const 8)) ;; (4) int
+  (global $writePtr i32 (i32.const 100)) ;; (4) *[]byte
+  (global $writeLen i32 (i32.const 104)) ;; (4) int
+  (global $writeRet i32 (i32.const 108)) ;; (4) int
 
   ;; Dirty area for $Itoa
-  (global $itoaBuffer i32 (i32.const 16)) ;; (16)
+  (global $itoaBuffer i32 (i32.const 116)) ;; (16)
 
   ;; Place where the current generation is stored
   (global $population i32 (i32.const 200)) ;; (800) [200][4]byte
@@ -720,7 +714,7 @@
     if unreachable end
 
     ;; if Write(1, *" : ", 3) != nil: throw
-    (call $Write (i32.const 1) (i32.const 12) (i32.const 3))
+    (call $Write (i32.const 1) (i32.const 30) (i32.const 3))
     if unreachable end
 
     ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
@@ -730,7 +724,7 @@
     if unreachable end
 
     ;; if Write(1, *"\n", 1) != nil: throw
-    (call $Write (i32.const 1) (i32.const 15) (i32.const 1))
+    (call $Write (i32.const 1) (i32.const 33) (i32.const 1))
     if unreachable end
   )
 
@@ -752,20 +746,19 @@
       ;; Create the IOVec.
       (i32.store (global.get $writePtr) (local.get $pointer))
       (i32.store (global.get $writeLen) (i32.sub (local.get $length) (local.get $written)))
-
       ;; Call underlying write function
       (call $wasi_unstable::fd_write
-        (i32.const 1) ;; Stdout
-        (i32.const 0) ;; *[]IOVec
+        (local.get $descriptor) ;; Stdout
+        (global.get $writePtr) ;; *[]IOVec
         (i32.const 1) ;; IOVec count
-        (global.get $writeLen) ;; *nwritten
+        (global.get $writeRet) ;; *nwritten
       ) ;; returns error
 
       (local.tee $err)
       if (return (local.get $err)) end
 
       ;; Return error if nwritten is 0
-      (i32.eqz (local.tee $nwritten (i32.load (global.get $writeLen))))
+      (i32.eqz (local.tee $nwritten (i32.load (global.get $writeRet))))
       if (return (i32.const 1)) end
 
       ;; if (return (i32.const 2)) end

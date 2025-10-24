@@ -8,3 +8,5 @@ This program was run and tested using [`wasmtime`](https://github.com/bytecodeal
 ```
 wasmtime knapsack.wat
 ```
+
+## Docs: Memory Usage
