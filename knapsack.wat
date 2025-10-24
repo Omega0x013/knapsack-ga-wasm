@@ -54,10 +54,10 @@
 
   ;;
   ;; GA Parameters
+  (global $generationCount i32 (i32.const 20)) ;; generations to run for
   (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
   (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
   (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
-  (global $generationCount i32 (i32.const 20)) ;; generations to run for
   ;;
   ;; Scenario Parameters
   (global $capacity i32 (i32.const 35)) ;; 35u max weight
