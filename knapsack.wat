@@ -3,6 +3,21 @@
 ;; █████   ██ ██  ██ ███████ ██████  ███████ ███████ ██      █████   
 ;; ██  ██  ██  ██ ██ ██   ██ ██           ██ ██   ██ ██      ██  ██  
 ;; ██   ██ ██   ████ ██   ██ ██      ███████ ██   ██  ██████ ██   ██ 
+;;
+;; Copyright (c) 2025 Xander Bielby (github.com/Omega0x013)
+;;
+;; This Source Code Form is subject to the terms of the Mozilla Public
+;; License, v. 2.0. If a copy of the MPL was not distributed with this
+;; file, You can obtain one at https://mozilla.org/MPL/2.0/.
+;;
+;; ===
+;;
+;; This is a Genetic Algorithm handwritten by me to solve a version of the
+;; knapsack problem. The question posed is: what's the most valuable set
+;; of items I can fit into this bag? In this scenario there are 10 items
+;; and the limiting factor is the amount of weight you can carry in your bag.
+;;
+;; ===
 ;; 
 ;; These massive labels look lovely in VSCode's Minimap
 ;; To make your own:
@@ -645,6 +660,8 @@
 
 
   ;; Mutate(genome u16, random *[20]byte) u16
+  ;; Returns a mutated version of a given genome, consuming 20 bytes (10 u16s)
+  ;; from the random pointer.
   (func $Mutate (param $genome i32) (param $random i32) (result i32)
     (local $col i32)
 
@@ -694,7 +711,7 @@
   ;; ██████ ██      ██████  
 
   ;; PrintGeneration(number int, fittest int)
-  ;; > print(`${number} : ${fittest}\n`)
+  ;; print(`${number} : ${fittest}\n`)
   (func $PrintGeneration (param $number i32) (param $fittest i32)
     ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     i32.const 1
@@ -776,7 +793,10 @@
     i32.const 0
   )
 
-  ;; Itoa(number int, buffer *[]byte) (*[]byte, int)
+  ;; Itoa(number int) (*[]byte, int)
+  ;; Uses the dirty buffer provided in BSS, returning a pointer into it which
+  ;; must be used to print the number before a new number can be converted
+  ;; you'd want a version of this which takes itoaBuffer as a parameter instead
   (func $Itoa (param $number i32) (result i32 i32)
     (local $pointer i32)
     (local $end_pointer i32)
