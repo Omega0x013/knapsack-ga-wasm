@@ -3,6 +3,10 @@
 ;; █████   ██ ██  ██ ███████ ██████  ███████ ███████ ██      █████   
 ;; ██  ██  ██  ██ ██ ██   ██ ██           ██ ██   ██ ██      ██  ██  
 ;; ██   ██ ██   ████ ██   ██ ██      ███████ ██   ██  ██████ ██   ██ 
+;; 
+;; These massive labels look lovely in VSCode's Minimap
+;; To make your own:
+;; https://patorjk.com/software/taag/#p=display&f=ANSI+Regular&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
 
 (module
   ;; ██████ ███    ███ ██████   ██████  ██████  ████████ ███████ 
@@ -24,15 +28,15 @@
   ;; ██   ██ ██   ██    ██    ██   ██ 
   ;; ██████  ██   ██    ██    ██   ██ 
 
-  (memory 4) ;; Pre-reserve 4 pages of memory
+  (memory 1) ;; Only uses ~7KiB out of the 64KiB available
   (export "memory" (memory 0))
 
   ;; GA Parameters
   ;;
-  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena - if you update this you'll also need to update
+  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
   (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
-  (global $mutationThreshold i32 (i32.const 3)) ;; ~1%
-  (global $generationCount i32 (i32.const 5)) ;; generations to run for
+  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
+  (global $generationCount i32 (i32.const 20)) ;; generations to run for
   ;;
   ;;
 
@@ -58,7 +62,7 @@
 
   (global $values i32 (i32.const 110)) ;; *Values
   ;; Values (2 bytes wide) [u16; 10]
-  ;; The bytes are little-endian, so keep that in mind.
+  ;; The bytes are little-endian, which confused me a bit
   (data (i32.const 110) "\7e\00") ;; 126
   (data (i32.const 112) "\9a\00") ;; 154
   (data (i32.const 114) "\00\01") ;; 256
@@ -89,27 +93,45 @@
   (global $itoaBuffer i32 (i32.const 16)) ;; (16)
 
   ;; Place where the current generation is stored
-  (global $population i32 (i32.const 200)) ;; (400) map[genome]u16
+  (global $population i32 (i32.const 200)) ;; (800) [200][4]byte
   (global $populationCount i32 (i32.const 200)) ;; len(population)
   (global $populationSize i32 (i32.const 800)) ;; sizeof(population)
+  (global $populationEnd i32 (i32.const 1000))
 
   ;; Place for the next generation to be written to
+  ;; Is the same size as population, but only every other u16 is written to
   (global $next i32 (i32.const 1000)) ;; (400) [200]genome
+  ;; Ends at 1400
 
   ;; Random generation segments - filled with random_get before each generation.
   ;; $arenaSize
-  (global $geneticRandom i32 (i32.const 2000)) ;; (3200) [3200]byte -- random numbers
-  ;; (global $geneticRandomEnd i32 (i32.const 5200)) ;; pointer to the end of geneticRandom
-  (global $selectionRandom i32 (i32.const 5200)) ;; (1200) [200][u16; 3] -- random numbers
-  ;; (global $selectionRandomEnd i32 (i32.const 6400)) ;; pointer to the end of selectionRandom
-  (global $randomSize i32 (i32.const 4400)) ;; sizeof(random generation segments)
-  ;; Segment ends at 6400
+  (global $randomSegment i32 (i32.const 1400)) ;; Explicit start of random segment
+  (global $selectionRandom i32 (i32.const 1400)) ;; (1200) [200][6]byte
+  (global $crossoverRandom i32 (i32.const 2600)) ;; (1200) [200][6]byte
+  (global $mutationRandom i32 (i32.const 3800)) ;; (4000) [200][20]byte
+  (global $randomSize i32 (i32.const 6400)) ;; Number of random bytes to fill in
+  ;; Ends at 7800
 
   ;; ███    ███  █████  ██████ ███    ██ 
   ;; ████  ████ ██   ██   ██   ████   ██ 
   ;; ██ ████ ██ ███████   ██   ██ ██  ██ 
   ;; ██  ██  ██ ██   ██   ██   ██  ██ ██ 
   ;; ██      ██ ██   ██ ██████ ██   ████ 
+  ;;
+  ;; Pseudocode:
+  ;; Fill Population with Random Data
+  ;; Loop
+  ;;   Fill Random Segment with Random Data
+  ;;   i := 0
+  ;;   Calculate the Population's fitnesses
+  ;;   Loop
+  ;;     Select Left Parent
+  ;;
+  ;;     
+  ;;     
+  ;;     
+  ;;     
+
 
   (start $Main)
   (func $Main
@@ -117,7 +139,6 @@
     (local $genome i32) ;; genome
     (local $i i32) ;; int
     (local $generation i32) ;; int
-    (local $fittest i32) ;; int
     (local $left i32) ;; genome
     (local $right i32) ;; genome
 
@@ -126,76 +147,83 @@
     (call $wasi_unstable::random_get (global.get $population) (global.get $populationSize))
     if unreachable end
 
-    ;; Calculate the first round of fitnesses
-    call $CalculateFitnesses
-
     (loop
       ;; Fill the random data segment
-      (call $wasi_unstable::random_get (global.get $geneticRandom) (global.get $randomSize))
+      (call $wasi_unstable::random_get (global.get $randomSegment) (global.get $randomSize))
       if unreachable end
 
       ;; i = 0
       i32.const 0
       local.set $i
 
+      ;; Calculate the population's fitnesses
+      local.get $generation
+      call $CalculateFitnesses
+      call $PrintGeneration
+
       (loop
         ;; Get the left parent
-        (block
-          ;; = (i*3) + selectionRandom
-          local.get $i
-          i32.const 3
-          i32.mul
-          global.get $selectionRandom
-          i32.add
+        ;; fitness, genome = Select(SelectionRandomAt(i))
+        local.get $i
+        call $SelectionRandomAt
+        call $Select
+        local.set $fitness
+        local.set $genome
 
-          ;; Select(...)
-          call $Select
-          local.set $fitness
-          local.set $genome
-
-          ;; if fitness > fittest { fittest = fitness }
-          local.get $fitness
-          local.get $fittest
-          i32.gt_s
-          if
-            local.get $fitness
-            local.set $fittest
-          end
-
-          ;; left = genome
-          local.get $genome
-          local.set $left
-        )
+        ;; left = genome
+        local.get $genome
+        local.set $left
 
         ;; Get the right parent
-        (block
-          ;; fitness, genome = Select(SelectionRandomAt(i))
-          local.get $i
-          call $SelectionRandomAt
-          call $Select
-          local.set $fitness
-          local.set $genome
+        ;; fitness, genome = Select(SelectionRandomAt(i))
+        local.get $i
+        call $SelectionRandomAt
+        call $Select
+        local.set $fitness
+        local.set $genome
 
-          ;; if fitness > fittest { fittest = fitness }
-          local.get $fitness
-          local.get $fittest
-          i32.gt_s
-          if
-            local.get $fitness
-            local.set $fittest
-          end
+        ;; right = genome
+        local.get $genome
+        local.set $right
 
-          ;; right = genome
-          local.get $genome
-          local.set $right
-        )
+        ;; left, right = Crossover(left, right, &crossoverRandom)
+        local.get $left
+        local.get $right
+        local.get $i
+        call $CrossoverRandomAt
+        call $Crossover
+        local.set $right
+        local.set $left
 
-        ;; ;; left, right = Crossover(left, right)
-        ;; local.get $left
-        ;; local.get $right
-        ;; call $Crossover
-        ;; local.set $right
-        ;; local.set $left
+        ;; left = Mutate(left)
+        local.get $left
+        local.get $i
+        call $MutationRandomAt
+        call $Mutate
+        local.set $left
+
+        ;; right = Mutate(right)
+        local.get $right
+        local.get $i
+        i32.const 1
+        i32.add
+        call $MutationRandomAt
+        call $Mutate
+        local.set $right
+
+        ;; next[i] = left
+        local.get $i
+        call $NextAt
+        local.get $left
+        i32.store16
+
+        ;; next[i+1] = right
+        local.get $i
+        i32.const 1
+        i32.add
+        call $NextAt
+        local.get $right
+        i32.store16
 
         ;; if i += 2; i < populationCount { continue }
         local.get $i
@@ -207,7 +235,11 @@
         br_if 0
       )
 
-      (call $PrintGeneration (local.get $generation) (local.get $fittest))
+      ;; population = next
+      global.get $population
+      global.get $next
+      global.get $populationSize
+      memory.copy
 
       ;; if generation += 1; generation < generationCount { continue }
       local.get $generation
@@ -218,48 +250,85 @@
       i32.lt_u
       br_if 0
     )
+
+    ;; Final Generation Max Fitness
+    ;; Calculate the population's fitnesses
+    local.get $generation
+    call $CalculateFitnesses
+    call $PrintGeneration
   )
 
   ;; ██████ ███    ██ ██████  ███████ ██   ██ 
   ;;   ██   ████   ██ ██   ██ ██       ██ ██  
   ;;   ██   ██ ██  ██ ██   ██ █████     ███   
   ;;   ██   ██  ██ ██ ██   ██ ██       ██ ██  
-  ;; ██████ ██   ████ ██████  ███████ ██   ██                                 
+  ;; ██████ ██   ████ ██████  ███████ ██   ██     
+  ;;
+  ;; I have debated whether or not it's worth changing my indexing functions
+  ;; to be a single function like: Index(base, index, sizeof) *void
+  ;; but make my main function slightly slimmer.                          
 
-  ;; WeightAt(idx int) *byte
-  (func $WeightAt (param $idx i32) (result i32)
-    (i32.add
-      (global.get $weights)
-      (local.get $idx)
-    )
-  )
-
-  ;; ValueAt(idx int) *byte
-  (func $ValueAt (param $idx i32) (result i32)
-    ;; Use a idx << 1 to multiply idx by 2
-    (i32.add
-      (global.get $values)
-      (i32.shl (local.get $idx) (i32.const 1))
-    )
-  )
-
-  ;; GeneticRandomAt(idx int) *byte
-  (func $GeneticRandomAt (param $idx i32) (result i32)
-    ;; return geneticRandom + idx * sizeof([10]byte)
-    local.get $idx
-    i32.const 10
-    i32.mul
-    global.get $geneticRandom
+  ;; WeightAt(n int) *byte
+  ;; Indexes into the weights, returning a pointer to the correct one
+  (func $WeightAt (param $n i32) (result i32)
+    ;; return (n << 1) + weights
+    local.get $n
+    global.get $weights
     i32.add
   )
 
-  ;; SelectionRandomAt(idx int) *byte
-  (func $SelectionRandomAt (param $idx i32) (result i32)
-    ;; return geneticRandom + idx * sizeof([3]byte)
-    local.get $idx
-    i32.const 3
+  ;; ValueAt(n int) *u16
+  ;; Indexes into the values, returning a pointer to the nth one
+  (func $ValueAt (param $n i32) (result i32)
+    ;; Use a n << 1 to multiply n by 2
+    ;; return (n << 1) + values
+    local.get $n
+    i32.const 1
+    i32.shl
+    global.get $values
+    i32.add
+  )
+
+  ;; SelectionRandomAt(n int) *[6]byte
+  ;; Finds the nth *[6]byte segment of selectionRandom
+  (func $SelectionRandomAt (param $n i32) (result i32)
+    ;; return n * 6 + selectionRandom
+    local.get $n ;; n
+    i32.const 6 ;; 6 bytes long
     i32.mul
     global.get $selectionRandom
+    i32.add
+  )
+
+  ;; CrossoverRandomAt(n int) *[6]byte
+  ;; Finds the nth *[6]byte segment of crossoverRandom
+  (func $CrossoverRandomAt (param $n i32) (result i32)
+    ;; return n * 6 + crossoverRandom
+    local.get $n
+    i32.const 6
+    i32.mul
+    global.get $crossoverRandom
+    i32.add
+  )
+
+  ;; MutationRandomAt(n int) *[10]byte
+  ;; Finds the nth *[10]byte segment of mutationRandom
+  (func $MutationRandomAt (param $n i32) (result i32)
+    ;; return n * 10 + mutationRandom
+    local.get $n
+    i32.const 10
+    i32.mul
+    global.get $mutationRandom
+    i32.add
+  )
+
+  ;; NextAt(idx int) (*u16, *u16)
+  (func $NextAt (param $idx i32) (result i32)
+    ;; ptr = next + (idx << 1)
+    local.get $idx
+    i32.const 1
+    i32.shl
+    global.get $next
     i32.add
   )
 
@@ -296,26 +365,21 @@
   ;; ██████  ██    ██ ██████  ██    ██ ██      ███████    ██      ██   ██    ██ ██ ██  ██ 
   ;; ██      ██    ██ ██      ██    ██ ██      ██   ██    ██      ██   ██    ██ ██  ██ ██ 
   ;; ██       ██████  ██       ██████  ███████ ██   ██    ██    ██████  ██████  ██   ████ 
+  ;;
+  ;; The population functions index and modify the current population in place,
+  ;; as set by $population
 
-  ;; CalculateFitnesses()
+  ;; CalculateFitnesses() int
   ;; Calculates the fitnesses for the population, modifying the individuals in place
-  (func $CalculateFitnesses
+  ;; Returns the fitness of the fittest indivdiual
+  (func $CalculateFitnesses (result i32)
     (local $ptr i32)
-    (local $end i32)
     (local $genome i32)
     (local $fitness i32)
+    (local $fittest i32)
 
     ;; ptr = &population
     (local.set $ptr (global.get $population))
-
-    ;; Get a pointer to the space immediately after the population array
-    ;; end = &population + populationSize
-    (local.set $end
-      (i32.add
-        (global.get $population)
-        (global.get $populationSize)
-      )
-    )
 
     (loop
       ;; genome = *ptr
@@ -326,7 +390,14 @@
       ;; fitness = Fitness(genome)
       local.get $genome
       call $Fitness
-      local.set $fitness
+      local.tee $fitness
+      ;; if fitness > max { max = fitness }
+      local.get $fittest
+      i32.gt_s
+      if
+        local.get $fitness
+        local.set $fittest
+      end
 
       ;; *(ptr+2) = fitness
       local.get $ptr
@@ -342,13 +413,15 @@
       local.tee $ptr
 
       ;; if ptr < end { continue }
-      local.get $end
+      global.get $populationEnd
       i32.lt_u
       br_if 0
     )
+
+    local.get $fittest
   )
 
-  ;; Select(random *byte) *individual
+  ;; Select(random *[6]byte) *u16
   ;; Arena selection - selects the fittest of $arenaCount randomly selected individuals
   ;; Consumes [u16; 3] from the random buffer
   (func $Select (param $random i32) (result i32 i32)
@@ -407,10 +480,6 @@
       br_if 0
     )
 
-    ;; (call $PrintGeneration (local.get $maxGenome) (local.get $maxFitness))
-    ;; (call $Write (i32.const 1) (i32.const 15) (i32.const 1))
-    ;; if unreachable end
-
     ;; return maxGenone, maxFitness
     local.get $maxGenome
     local.get $maxFitness
@@ -437,13 +506,15 @@
     (local $value i32)
 
     (loop
-      ;; if genome & (1 << col) {
-      i32.const 1
-      local.get $col
-      i32.shl
-      local.get $genome
-      i32.and
-      if
+      (block
+        ;; if genome & (1 << col) { pass }
+        i32.const 1
+        local.get $col
+        i32.shl
+        local.get $genome
+        i32.and
+        br_if 0
+
         ;; weight = weight + WeightAt(col)
         local.get $col
         call $WeightAt
@@ -459,7 +530,7 @@
         local.get $value
         i32.add
         local.set $value
-      end
+      )
 
       ;; if col += 1; col < 10 { continue }
       local.get $col
@@ -481,38 +552,124 @@
     return
   )
 
-  ;; Crossover(left, right u16, ptr *[6]byte)
-  ;; Cross over two genomes, using the random numbers in the pointer
-  (func $Crossover (param $left i32) (param $right i32) (param $ptr i32) (result i32 i32)
-    (local $a i32) ;; child a
-    (local $b i32) ;; child b
+  ;; Crossover(left, right u16, random *[6]byte)
+  ;; Cross over two genomes
+  ;; Consumes random as [u16, u32]
+  ;; u16 -> crossover chance
+  ;; u32 -> crossing point
+  ;; Transforms parents (left, right) into (alpha, beta)
+  (func $Crossover (param $left i32) (param $right i32) (param $random i32) (result i32 i32)
     (local $crossingPoint i32)
-    ;; if !(*ptr < crossoverThreshold)
-    (i32.lt_u (i32.load16_u (local.get $ptr)) (global.get $crossoverThreshold))
-    i32.eqz
-    if ;; { return (left, right) }
-      (return (local.get $left) (local.get $right))
+    (local $prefix i32)
+    (local $suffix i32)
+    (local $alpha i32)
+    (local $beta i32)
+
+    ;; Short circuit if no crossing is happening
+    ;; Equivalent to !(*random < crossoverThreshold)
+    ;; if *random >= crossoverThreshold { return left, right }
+    local.get $random
+    i32.load16_u
+    global.get $crossoverThreshold
+    i32.ge_u
+    if
+      local.get $left
+      local.get $right
+      return
     end
 
-    ;; crossingPoint = *(ptr+2) % 10
-    (local.set $crossingPoint
-      (i32.rem_u
-        (i32.load 
-          (i32.add (local.get $ptr) (i32.const 2))
-        )
-        (i32.const 10)
-      )
-    )
+    ;; Choose a crossing point
+    ;; crossingPoint = *(random+2) % 10
+    local.get $random
+    i32.const 2
+    i32.add
+    i32.load
+    i32.const 10
+    i32.rem_u
+    local.set $crossingPoint
 
-    ;; Cross over left and right
+    ;; Generate the suffix mask first
+    ;; suffix = (1 << crossingPoint) - 1
+    i32.const 1
+    local.get $crossingPoint
+    i32.shl
+    i32.const 1
+    i32.sub
+    local.set $suffix
+
+    ;; Generate the prefix mask using the suffix mask
+    ;; prefix = -1 ^ suffix
+    i32.const -1
+    local.get $suffix
+    i32.xor
+    local.set $prefix
+
+    ;; Cross over [left :: right] to make alpha
+    ;; alpha = (prefix & left) | (suffix & right)
+    local.get $prefix
     local.get $left
+    i32.and
+    local.get $suffix
     local.get $right
+    i32.and
+    i32.or
+    local.set $alpha
+
+    ;; Cross over [right :: left] to make beta
+    local.get $prefix
+    local.get $right
+    i32.and
+    local.get $suffix
+    local.get $left
+    i32.and
+    i32.or
+    local.set $beta
+
+    ;; return alpha, beta
+    local.get $alpha
+    local.get $beta
+    return
   )
 
 
-  ;; TODO
+  ;; Mutate(genome u16, random *[20]byte) u16
   (func $Mutate (param $genome i32) (param $random i32) (result i32)
     (local $col i32)
+
+    (loop
+      (block
+
+        ;; If mutationThreshold isn't reached, short-circuit to the logic at the end of the loop
+        ;; if *(random + (col << 1)) >= mutationThreshold { pass }
+        local.get $col
+        i32.const 1
+        i32.shl
+        local.get $random
+        i32.add
+        i32.load16_u
+        global.get $mutationThreshold
+        i32.ge_u
+        br_if 0
+
+        ;; Generate a mask and flip
+        ;; 1 << col
+        i32.const 1
+        local.get $col
+        i32.shl
+        local.get $genome
+        i32.xor
+        local.set $genome
+      )
+
+      ;; if col += 1; col < 10 { continue }
+      local.get $col
+      i32.const 1
+      i32.add
+      local.tee $col
+      i32.const 10
+      i32.lt_u
+      br_if 0
+    )
 
     local.get $genome
   )
