@@ -29,6 +29,7 @@ seeding the individuals for the first generation.
 The segment indicated by the dashed line is called `randomSegment`.
 It contains three arrays used to make random decisions throughout the program.
 To reduce overheads, these three arrays are filled all at once with a single call to `wasi_unstable::random_get`.
+
 4. `selectionRandom` is used in three `u16`s to select the individuals in each tournament.
 5. `crossoverRandom` is used in two parts:
     1. A `u16` to decide whether or not crossing over will occur.
