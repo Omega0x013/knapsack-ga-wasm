@@ -24,6 +24,23 @@
 ;; https://patorjk.com/software/taag/#p=display&f=ANSI+Regular&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
 
 (module
+  ;; ██████   █████  ██████   █████  ███    ███ ███████ ████████ ███████ ██████  ███████ 
+  ;; ██   ██ ██   ██ ██   ██ ██   ██ ████  ████ ██         ██    ██      ██   ██ ██      
+  ;; ██████  ███████ ██████  ███████ ██ ████ ██ █████      ██    █████   ██████  ███████ 
+  ;; ██      ██   ██ ██   ██ ██   ██ ██  ██  ██ ██         ██    ██      ██   ██      ██ 
+  ;; ██      ██   ██ ██   ██ ██   ██ ██      ██ ███████    ██    ███████ ██   ██ ███████ 
+
+  ;;
+  ;; GA Parameters
+  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
+  (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
+  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
+  (global $generationCount i32 (i32.const 20)) ;; generations to run for
+  ;;
+  ;; Scenario Parameters
+  (global $capacity i32 (i32.const 35)) ;; 35u max weight
+  ;;
+
   ;; ██████ ███    ███ ██████   ██████  ██████  ████████ ███████ 
   ;;   ██   ████  ████ ██   ██ ██    ██ ██   ██    ██    ██      
   ;;   ██   ██ ████ ██ ██████  ██    ██ ██████     ██    ███████ 
@@ -46,16 +63,11 @@
   (memory 1) ;; Only uses ~7KiB out of the 64KiB available
   (export "memory" (memory 0)) ;; export the 0th memory
 
-  ;;
-  ;; GA Parameters
-  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena
-  (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
-  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
-  (global $generationCount i32 (i32.const 20)) ;; generations to run for
-  ;;
-  ;; Scenario Parameters
-  (global $capacity i32 (i32.const 35)) ;; 35u max weight
-  ;;
+  ;; ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
+  ;; ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
+  ;; ██ ██ ██  ██ ██    ██    ██ ███████ ██      ██ ███████ █████   ██   ██ 
+  ;; ██ ██  ██ ██ ██    ██    ██ ██   ██ ██      ██      ██ ██      ██   ██ 
+  ;; ██ ██   ████ ██    ██    ██ ██   ██ ███████ ██ ███████ ███████ ██████  
 
   (global $weights i32 (i32.const 0)) ;; *Weights
   ;; Weights (1 byte wide) [u8; 10]
@@ -88,11 +100,11 @@
   (data (i32.const 30) " : ") ;; (3)
   (data (i32.const 33) "\n") ;; (1)
 
-  ;; ██████  ███████ ███████ 
-  ;; ██   ██ ██      ██      
-  ;; ██████  ███████ ███████ 
-  ;; ██   ██      ██      ██ 
-  ;; ██████  ███████ ███████ 
+  ;; ██    ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
+  ;; ██    ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
+  ;; ██    ██ ██ ██  ██ ██    ██    ██ ███████ ██      ██ ███████ █████   ██   ██ 
+  ;; ██    ██ ██  ██ ██ ██    ██    ██ ██   ██ ██      ██      ██ ██      ██   ██ 
+  ;;  ██████  ██   ████ ██    ██    ██ ██   ██ ███████ ██ ███████ ███████ ██████  
   ;;
   ;; This section is filled programmatically.
 
