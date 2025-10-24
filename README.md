@@ -12,9 +12,14 @@ wasmtime knapsack.wat
 ## Docs: Program Output
 
 `knapsack.wat` outputs its results to `STDOUT` (file descriptor `1`).
-Each line looks something like this:
+Its output looks something like this:
 ```txt
-12: 2140
+13: 2140
+14: 2140
+15: 2140
+16: 2212
+17: 2212
+18: 2212
 ```
 It's composed of two parts:
 ```txt
