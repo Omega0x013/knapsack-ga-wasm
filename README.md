@@ -16,7 +16,7 @@ Here is a not-entirely-to-scale diagram of the contents of my program's linear m
 ![Only a tiny portion of the memory is initialised](docs/memory.svg)
 
 The intialised portion is hardcoded, and is filled when the program is first loaded.
-It contains the scenario data and the printable strings ": " and "\n".
+It contains the scenario data and the printable strings `: ` and `\n`.
 It only contains 33 bytes of data, but has 100 bytes of space in case I need to add more.
 
 The uninitialised portion is filled programmatically.
