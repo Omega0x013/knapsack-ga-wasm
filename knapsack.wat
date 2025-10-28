@@ -56,8 +56,8 @@
   ;; GA Parameters
   (global $generationCount i32 (i32.const 20)) ;; generations to run for
   (global $arenaCount i32 (i32.const 3)) ;; individuals per arena - if you choose to adjust this upward, you may have to make selectionRandom larger to accomodate
-  (global $crossoverThreshold i32 (i32.const 52428)) ;; ~80%
-  (global $mutationThreshold i32 (i32.const 655)) ;; ~1%
+  (global $crossoverThreshold i32 (i32.const 52428)) ;; default = 52428 = ~80%
+  (global $mutationThreshold i32 (i32.const 655)) ;; default = 655 = ~1%
   ;;
   ;; Scenario Parameters
   (global $capacity i32 (i32.const 35)) ;; 35u max weight
