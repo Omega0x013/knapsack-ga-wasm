@@ -99,6 +99,9 @@
   ;; Printable strings
   (data (i32.const 30) ": ") ;; (2)
   (data (i32.const 32) "\n") ;; (1)
+  (data (i32.const 33) "Max = ") ;; (6)
+  (data (i32.const 39) "Mean = ") ;; (7)
+  (data (i32.const 46) ", ") ;; (2)
 
   ;; ██    ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
   ;; ██    ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
@@ -405,11 +408,12 @@
   ;; CalculateFitnesses() int
   ;; Calculates the fitnesses for the population, modifying the individuals in place
   ;; Returns the fitness of the fittest indivdiual
-  (func $CalculateFitnesses (result i32)
+  (func $CalculateFitnesses (result i32 i32)
     (local $ptr i32)
     (local $genome i32)
     (local $fitness i32)
     (local $fittest i32)
+    (local $sumFitness i32)
 
     ;; ptr = &population
     (local.set $ptr (global.get $population))
@@ -432,6 +436,12 @@
         local.set $fittest
       end
 
+      ;; sumFitness = sumFitness + fitness
+      local.get $sumFitness
+      local.get $fitness
+      i32.add
+      local.set $sumFitness
+
       ;; *(ptr+2) = fitness
       local.get $ptr
       i32.const 2
@@ -451,6 +461,10 @@
       br_if 0
     )
 
+    ;; return sumFitness / populationCount, fittest
+    local.get $sumFitness
+    global.get $populationCount
+    i32.div_u
     local.get $fittest
   )
 
@@ -716,17 +730,39 @@
   ;;   ██    ██    ██    ██ 
   ;; ██████ ██      ██████  
 
-  ;; PrintGeneration(number int, fittest int)
+  ;; PrintGeneration(number, mean, fittest int)
   ;; print(`${number} : ${fittest}\n`)
-  (func $PrintGeneration (param $number i32) (param $fittest i32)
+  (func $PrintGeneration (param $number i32) (param $mean i32) (param $fittest i32)
     ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     i32.const 1
     (call $Itoa (local.get $number))
     call $Write
     if unreachable end
 
-    ;; if Write(1, *" : ", 3) != nil: throw
+    ;; if Write(1, *": ", 2) != nil: throw
     (call $Write (i32.const 1) (i32.const 30) (i32.const 2))
+    if unreachable end
+
+    ;;
+
+    ;; if Write(1, *"Mean = ", 7) != nil: throw
+    (call $Write (i32.const 1) (i32.const 39) (i32.const 7))
+    if unreachable end
+
+    ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
+    i32.const 1
+    (call $Itoa (local.get $mean))
+    call $Write
+    if unreachable end
+
+    ;; if Write(1, *", ", 2) != nil: throw
+    (call $Write (i32.const 1) (i32.const 46) (i32.const 2))
+    if unreachable end
+
+    ;;
+
+    ;; if Write(1, *"Max = ", 6) != nil: throw
+    (call $Write (i32.const 1) (i32.const 33) (i32.const 6))
     if unreachable end
 
     ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
@@ -734,6 +770,8 @@
     (call $Itoa (local.get $fittest))
     call $Write
     if unreachable end
+
+    ;;
 
     ;; if Write(1, *"\n", 1) != nil: throw
     (call $Write (i32.const 1) (i32.const 32) (i32.const 1))
