@@ -1,70 +1,30 @@
 # knapsack-ga-wasm
-Genetic algorithm solving the knapsack problem, written in WebAssembly Text Format.
+> Genetic algorithm solving the knapsack problem, written in WebAssembly Text Format.
 
-## Run it yourself
+## Run it Yourself
 
-This program was run and tested using [`wasmtime`](https://github.com/bytecodealliance/wasmtime) v38.
+This program was run and tested using [`wasmtime`](https://github.com/bytecodealliance/wasmtime) v38. To run it, clone the repo and run this command in the base directory:
 
 ```
 wasmtime knapsack.wat
 ```
 
-## Docs: Program Parameters
+## Understanding Program Output
 
-You can adjust several characteristics about the genetic algorithm to see how they affect finding the solution and solution convergence:
-- `$generationCount` - Total run time of the program. If you're failing to find a solution consistently, try upping this until you do, so you can see how the other factors are impacting performance. Default is 20.
-- `$arenaCount` - Number of individuals per tournament. Larger number causes your GA to converge on a solution faster. Default is 3.
-- `$crossoverThreshold` - Chance out of 65536 of crossover occurring. Default is 52428 (80%).
-- `$mutationThreshold` - Chance out of 65536 of each bit in a genome mutating. Default is 655 (1%).
-For crossing over and mutation rates, higher values tend to lead to slower convergence.
-You can find these variables on lines 57-60 of [`knapsack.wat`](knapsack.wat).
-Fiddle with the values and then run the program again.
+Knapsack outputs its results to the terminal (via `STDOUT`), here is an sample:
 
-## Docs: Program Output
-
-`knapsack.wat` outputs its results to `STDOUT` (file descriptor `1`).
-Its output looks something like this:
 ```txt
-13: 2140
-14: 2140
-15: 2140
-16: 2212
-17: 2212
-18: 2212
-```
-It's composed of two parts:
-```txt
-{Generation}: {Fitness}
+0: Mean = 642, Max = 2172
+1: Mean = 854, Max = 2172
+2: Mean = 924, Max = 2172
+3: Mean = 934, Max = 2046
+4: Mean = 966, Max = 2034
 ```
 
-`Generation` is number of rounds of selection, crossing over, and mutation the population has gone through,
-starting from 0 and working its way up to `$generationCount`.
+Each line starts with the generation count - how many rounds of selection, crossover, and mutation the population has been through. This number starts at 0, representing the stats of the original randomly generated population. Then, two results are shown:
+- The `Mean` is the mean fitness of the population. Some individuals' fitnesses are 0, because they are an invalid solution, bringing the average down.
+- The `Max` is the fitness of the fittest individual in the population. Previous iterations of this same algorithm and dataset have proven that `2212` is the fitness of the optimum solution.
 
-`Fitness` is the fitness of the fittest member of the current population. This number should go up over time, if the GA is working properly.
+## Documentation
 
-## Docs: Memory Usage
-
-Here is a not-entirely-to-scale diagram of the contents of my program's linear memory:
-
-![Only a tiny portion of the memory is initialised](docs/memory.svg)
-
-The intialised portion is hardcoded, and is filled when the program is first loaded.
-It contains the scenario data and the printable strings `: ` and `\n`.
-It only contains 33 bytes of data, but has 100 bytes of space in case I need to add more.
-
-The uninitialised portion is filled programmatically.
-1. The section in contains buffers for the I/O functions.
-2. `population` is a massive array containing pairs of genomes and fitnesses.
-3. `next` has the same structure as `population`, except that its fitnesses are never filled.
-
-At the beginning of the program, `population` is filled with random numbers,
-seeding the individuals for the first generation.
-The segment indicated by the dashed line is called `randomSegment`.
-It contains three arrays used to make random decisions throughout the program.
-To reduce overheads, these three arrays are filled all at once with a single call to `wasi_unstable::random_get`.
-
-4. `selectionRandom` is used in three `u16`s to select the individuals in each tournament.
-5. `crossoverRandom` is used in two parts:
-    1. A `u16` to decide whether or not crossing over will occur.
-    2. A `u32` to fairly decide the crossing point.
-6. `mutationRandom` is used as 10 `u16`s to decide whether or not to flip each of the 10 bits in a genome.
+[docs/README.md](docs/README.md)
