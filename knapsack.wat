@@ -779,71 +779,79 @@
     call $Print
   )
 
-  ;; Print(pointer *[]byte, length int) error
-  ;; Takes a file descriptor to be written to (STDOUT = 1; STDERR = 2)
-  ;; and a pointer to a string and the number of bytes to write.
-  ;; Error is an int; if error != 0 (nil), there's an error.
+  ;; Print(pointer *string, length int)
+  ;; Writes length bytes from pointer to STDOUT.
+  ;; Throws an error if STDOUT is closed.
   (func $Print (param $pointer i32) (param $length i32)
-    ;; Keep track of the number of bytes already written
+    ;; Keep track of the number of bytes that have been written
     (local $written i32)
-    (local $nwritten i32)
     (local $failures i32)
 
-    ;; Initialise $written with 0.
-    (local.set $written (i32.const 0))
+    ;; Work through the string, writing until it's all been written.
+    ;; If no bytes are written 3 times in a row, throws an error.
+    (loop
+      ;; Write pointer to IOVec
+      global.get $writePtr
+      local.get $pointer
+      i32.store
 
-    ;; Repeatedly write the string until it's all been written.
-    (loop $WriteLoop
-      ;; Create the IOVec.
-      (i32.store (global.get $writePtr) (local.get $pointer))
-      (i32.store (global.get $writeLen) (i32.sub (local.get $length) (local.get $written)))
-      ;; Call underlying write function
-      (call $wasi_unstable::fd_write
-        (i32.const 1) ;; Stdout
-        (global.get $writePtr) ;; *[]IOVec
-        (i32.const 1) ;; IOVec count
-        (global.get $writeRet) ;; *nwritten
-      ) ;; returns error
+      ;; Write length to IOVec
+      global.get $writeLen
+      local.get $length
+      i32.store
+
+      ;; Call WASI write function
+      ;; if wasi_unstable::fd_write(1, writePtr, 1, writeRet) != nil { panic }
+      i32.const 1
+      global.get $writePtr
+      i32.const 1
+      global.get $writeRet
+      call $wasi_unstable::fd_write
       if unreachable end
 
-      ;; Add a failure since nwritten is 0
+      ;; if written = *writeRet; nwritten == 0 {
       global.get $writeRet
       i32.load
-      local.tee $nwritten
+      local.tee $written
       i32.eqz
       if
-        ;; check if too many failures
-        ;; if failures > 3 { throw }
+        ;; if failures >= 3 { panic }
         local.get $failures
         i32.const 3
-        i32.gt_u
+        i32.ge_u
         if unreachable end
 
-        ;; increment failures
+        ;; failures += 1
         local.get $failures
         i32.const 1
         i32.add
-        local.set $failures
+
+        ;; Since no bytes were written, we can short-circuit
+        ;; continue
+        br 0
       end
-      
-      ;; Increment written.
-      (local.set $written (i32.add
-        (local.get $written)
-        (local.get $nwritten)
-      ))
 
-      ;; Increment the pointer.
-      (local.set $pointer (i32.add
-        (local.get $pointer)
-        (i32.load (global.get $writeLen))
-      ))
+      ;; We've written more than 0 bytes, so our failure streak (if any) is broken
+      i32.const 0
+      local.set $failures
 
-      ;; Check if we've written the entire length of the string.
-      (i32.ne (local.get $written) (local.get $length))
-      ;; If not, loop again.
-      br_if $WriteLoop
+      ;; Increment pointer
+      ;; pointer = pointer + written
+      local.get $pointer
+      local.get $written
+      i32.add
+      local.set $pointer
+
+      ;; Decrement length
+      ;; if length = length - written; length > 0 { continue }
+      local.get $length
+      local.get $written
+      i32.sub
+      local.tee $length
+      i32.const 0
+      i32.gt_u
+      br_if 0
     )
-  )
 
   ;; Itoa(number int) (*[]byte, int)
   ;; Uses the dirty buffer provided in BSS, returning a pointer into it which
