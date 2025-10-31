@@ -29,3 +29,22 @@ Starting at `200` is the uninitialised portion, which is filled as the program r
 
 At the beginning of the program, `population` is filled with random bytes, generating the intial population.
 Each generation, `selectionRandom`, `crossoverRandom`, and `mutationRandom` are filled with random bytes, providing the randomness for that generation.
+
+## Style Guide
+
+- Variables are `snakeCase`.
+- Functions are `CamelCase`.
+- Use assembly-style expressions over S-expressions.
+- Document functions using Go-style method signatures.
+
+## `$Main`
+
+To begin to explain how the program actually works, I think it's important to go over the broad strokes of how the main loop operates.
+
+1. To begin with, the `population` is filled with random individuals.
+2. The CSV header is emitted.
+3. `for generation := range maxGenerations`.
+    1. First, the random segment - `selectionRandom`, `crossoverRandom`, and `mutationRandom` is filled with random bytes.
+    2. Next, we calculate the fitnesses of the current generation using `$CalculateFitnesses`
+    3. Now, we loop over the population: `for i := range population`
+        1. Use `SelectionRandomAt` to index into 
