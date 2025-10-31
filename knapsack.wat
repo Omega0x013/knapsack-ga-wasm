@@ -743,40 +743,40 @@
     call $Itoa
     call $Print
 
-    ;; ;; if Print(1, *": ", 2) != nil: throw
-    ;; (call $Print (i32.const 30) (i32.const 2))
-    ;; if unreachable end
-
     ;; Print(": ", 2)
     i32.const 30
     i32.const 2
     call $Print
 
-    ;;
-
-    ;; if Print(1, *"Mean = ", 7) != nil: throw
-    (call $Print (i32.const 39) (i32.const 7))
-
-    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    (call $Itoa (local.get $mean))
+    ;; Print("Mean = ", 7)
+    i32.const 39
+    i32.const 7
     call $Print
 
-    ;; if Print(1, *", ", 2) != nil: throw
-    (call $Print (i32.const 46) (i32.const 2))
-
-    ;;
-
-    ;; if Print(1, *"Max = ", 6) != nil: throw
-    (call $Print (i32.const 33) (i32.const 6))
-
-    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    (call $Itoa (local.get $fittest))
+    ;; Print(Itoa(mean))
+    local.get $mean
+    call $Itoa
     call $Print
 
-    ;;
+    ;; Print(", ", 2)
+    i32.const 46
+    i32.const 2
+    call $Print
 
-    ;; if Print(1, *"\n", 1) != nil: throw
-    (call $Print (i32.const 32) (i32.const 1))
+    ;; Print("Max = ", 6)
+    i32.const 33
+    i32.const 6
+    call $Print
+    
+    ;; Print(Itoa(fittest))
+    local.get $fittest
+    call $Itoa
+    call $Print
+
+    ;; Print("\n", 1)
+    i32.const 32
+    i32.const 1
+    call $Print
   )
 
   ;; Print(pointer *[]byte, length int) error
