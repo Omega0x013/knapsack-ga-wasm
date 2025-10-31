@@ -10,6 +10,13 @@ You can adjust several characteristics about the genetic algorithm to see how th
 
 These values are stored in global constants found in lines `57`-`60`.
 
+## Style Guide
+
+- Variables are `snakeCase`.
+- Functions are `CamelCase`.
+- Use assembly-style expressions over S-expressions.
+- Document functions using Go-style method signatures.
+
 ## Linear Memory
 
 Here is a not-entirely-to-scale diagram of the contents of Knapsack's linear memory:
@@ -30,21 +37,44 @@ Starting at `200` is the uninitialised portion, which is filled as the program r
 At the beginning of the program, `population` is filled with random bytes, generating the intial population.
 Each generation, `selectionRandom`, `crossoverRandom`, and `mutationRandom` are filled with random bytes, providing the randomness for that generation.
 
-## Style Guide
+## `population` and `next`
 
-- Variables are `snakeCase`.
-- Functions are `CamelCase`.
-- Use assembly-style expressions over S-expressions.
-- Document functions using Go-style method signatures.
+The `population` and `next` segments are both nominally arrays of `[]Individual`:
 
-## `$Main`
+```go
+type Individual struct {
+    Genome uint16
+    Fitness uint16
+}
+```
 
-To begin to explain how the program actually works, I think it's important to go over the broad strokes of how the main loop operates.
+In `population`, both fields are filled. However, in `next`, only the `Genome` is filled:
 
-1. To begin with, the `population` is filled with random individuals.
-2. The CSV header is emitted.
-3. `for generation := range maxGenerations`.
-    1. First, the random segment - `selectionRandom`, `crossoverRandom`, and `mutationRandom` is filled with random bytes.
-    2. Next, we calculate the fitnesses of the current generation using `$CalculateFitnesses`
-    3. Now, we loop over the population: `for i := range population`
-        1. Use `SelectionRandomAt` to index into 
+![](populationBytes.svg).
+
+If space was the primary concern, it would make the most sense to use `[]uint16` to store the next population. In this case, speed is the primary concern, so by padding out `next` we can use `memory.copy` to copy `next` into `population` much faster than using loads and stores to do it.
+
+## Random Data
+
+The three random data segments - `selectionRandom`, `crossoverRandom`, and `mutationRandom` - collectively pointed to by `randomSegment` are filled with random data at the start of each generation. These are used to make decisions like the crossover point or choosing to mutate a particular bit.
+
+The random segments are best described as arrays:
+
+```go
+// Three individuals selected per arena
+var selectionRandom [][3]uint16
+
+type CrossoverRandom struct {
+    CrossingChance uint16
+    CrossingPoint uint32
+}
+// One crossing chance and one crossing point per pair
+var crossoverRandom []CrossoverRandom
+
+// 10 bits to mutate
+var mutationRandom [][10]uint16
+```
+
+Some of the functions under Index are used to get pointers into these arrays of random data, so that each time a decision needs to be made, it uses a fresh piece of random data.
+
+An alternate way of handling this task would be using something in the style of a [bump allocator](https://en.wikipedia.org/wiki/Region-based_memory_management) to apportion out random data on demand from a buffer.
