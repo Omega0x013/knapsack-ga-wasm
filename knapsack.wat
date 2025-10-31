@@ -738,57 +738,56 @@
   ;; PrintGeneration(number, mean, fittest int)
   ;; print(`${number} : ${fittest}\n`)
   (func $PrintGeneration (param $number i32) (param $mean i32) (param $fittest i32)
-    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    (call $Itoa (local.get $number))
+    ;; Print(Itoa(number))
+    local.get $number
+    call $Itoa
     call $Print
-    if unreachable end
 
-    ;; if Print(1, *": ", 2) != nil: throw
-    (call $Print (i32.const 30) (i32.const 2))
-    if unreachable end
+    ;; ;; if Print(1, *": ", 2) != nil: throw
+    ;; (call $Print (i32.const 30) (i32.const 2))
+    ;; if unreachable end
+
+    ;; Print(": ", 2)
+    i32.const 30
+    i32.const 2
+    call $Print
 
     ;;
 
     ;; if Print(1, *"Mean = ", 7) != nil: throw
     (call $Print (i32.const 39) (i32.const 7))
-    if unreachable end
 
     ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     (call $Itoa (local.get $mean))
     call $Print
-    if unreachable end
 
     ;; if Print(1, *", ", 2) != nil: throw
     (call $Print (i32.const 46) (i32.const 2))
-    if unreachable end
 
     ;;
 
     ;; if Print(1, *"Max = ", 6) != nil: throw
     (call $Print (i32.const 33) (i32.const 6))
-    if unreachable end
 
     ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     (call $Itoa (local.get $fittest))
     call $Print
-    if unreachable end
 
     ;;
 
     ;; if Print(1, *"\n", 1) != nil: throw
     (call $Print (i32.const 32) (i32.const 1))
-    if unreachable end
   )
 
   ;; Print(pointer *[]byte, length int) error
   ;; Takes a file descriptor to be written to (STDOUT = 1; STDERR = 2)
   ;; and a pointer to a string and the number of bytes to write.
   ;; Error is an int; if error != 0 (nil), there's an error.
-  (func $Print (param $pointer i32) (param $length i32) (result i32)
+  (func $Print (param $pointer i32) (param $length i32)
     ;; Keep track of the number of bytes already written
     (local $written i32)
     (local $nwritten i32)
-    (local $err i32)
+    (local $failures i32)
 
     ;; Initialise $written with 0.
     (local.set $written (i32.const 0))
@@ -805,16 +804,27 @@
         (i32.const 1) ;; IOVec count
         (global.get $writeRet) ;; *nwritten
       ) ;; returns error
+      if unreachable end
 
-      (local.tee $err)
-      if (return (local.get $err)) end
+      ;; Add a failure since nwritten is 0
+      global.get $writeRet
+      i32.load
+      local.tee $nwritten
+      i32.eqz
+      if
+        ;; check if too many failures
+        ;; if failures > 3 { throw }
+        local.get $failures
+        i32.const 3
+        i32.gt_u
+        if unreachable end
 
-      ;; Return error if nwritten is 0
-      (i32.eqz (local.tee $nwritten (i32.load (global.get $writeRet))))
-      if (return (i32.const 1)) end
-
-      ;; if (return (i32.const 2)) end
-      ;; if (call $Panic (i32.const 108) (i32.const 13)) end
+        ;; increment failures
+        local.get $failures
+        i32.const 1
+        i32.add
+        local.set $failures
+      end
       
       ;; Increment written.
       (local.set $written (i32.add
@@ -833,9 +843,6 @@
       ;; If not, loop again.
       br_if $WriteLoop
     )
-
-    ;; Result = Success.
-    i32.const 0
   )
 
   ;; Itoa(number int) (*[]byte, int)
