@@ -96,12 +96,21 @@
   (data (i32.const 26) "\9f\02") ;; 671
   (data (i32.const 28) "\5c\01") ;; 348
 
-  ;; Printable strings
-  (data (i32.const 30) ": ") ;; (2)
-  (data (i32.const 32) "\n") ;; (1)
-  (data (i32.const 33) "Max = ") ;; (6)
-  (data (i32.const 39) "Mean = ") ;; (7)
-  (data (i32.const 46) ", ") ;; (2)
+  ;; ;; Printable strings
+  ;; (data (i32.const 30) ": ") ;; (2)
+  ;; (data (i32.const 32) "\n") ;; (1)
+  ;; (data (i32.const 33) "Max = ") ;; (6)
+  ;; (data (i32.const 39) "Mean = ") ;; (7)
+  ;; (data (i32.const 46) ", ") ;; (2)
+  (data (i32.const 30) "generation,mean,max\n")
+  (global $stringCSVHeaderPtr i32 (i32.const 30))
+  (global $stringCSVHeaderLen i32 (i32.const 20))
+  (data (i32.const 50) ",")
+  (global $stringCommaPtr i32 (i32.const 50))
+  (global $stringCommaLen i32 (i32.const 1))
+  (data (i32.const 51) "\n")
+  (global $stringNewlinePtr i32 (i32.const 51))
+  (global $stringNewlineLen i32 (i32.const 51))
 
   ;; ██    ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
   ;; ██    ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
@@ -184,6 +193,11 @@
     global.get $populationSize
     call $wasi_unstable::random_get
     if unreachable end
+
+    ;; Print CSV header
+    global.get $stringCSVHeaderPtr
+    global.get $stringCSVHeaderLen
+    call $Print
 
     (loop
       ;; Fill the random data segment
@@ -735,47 +749,35 @@
   ;;   ██    ██    ██    ██ 
   ;; ██████ ██      ██████  
 
-  ;; PrintGeneration(number, mean, fittest int)
+  ;; PrintGeneration(generation, mean, fittest int)
   ;; print(`${number} : ${fittest}\n`)
-  (func $PrintGeneration (param $number i32) (param $mean i32) (param $fittest i32)
-    ;; Print(Itoa(number))
-    local.get $number
+  (func $PrintGeneration (param $generation i32) (param $mean i32) (param $fittest i32)
+    ;; Print(Itoa(generation))
+    local.get $generation
     call $Itoa
     call $Print
-
-    ;; Print(": ", 2)
-    i32.const 30
-    i32.const 2
+    
+    ;; ","
+    global.get $stringCommaPtr
+    global.get $stringCommaLen
     call $Print
 
-    ;; Print("Mean = ", 7)
-    i32.const 39
-    i32.const 7
-    call $Print
-
-    ;; Print(Itoa(mean))
     local.get $mean
     call $Itoa
     call $Print
 
-    ;; Print(", ", 2)
-    i32.const 46
-    i32.const 2
+    ;; ","
+    global.get $stringCommaPtr
+    global.get $stringCommaLen
     call $Print
 
-    ;; Print("Max = ", 6)
-    i32.const 33
-    i32.const 6
-    call $Print
-    
-    ;; Print(Itoa(fittest))
     local.get $fittest
     call $Itoa
     call $Print
 
     ;; Print("\n", 1)
-    i32.const 32
-    i32.const 1
+    global.get $stringNewlinePtr
+    global.get $stringNewlineLen
     call $Print
   )
 
