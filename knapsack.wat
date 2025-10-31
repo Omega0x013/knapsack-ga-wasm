@@ -852,6 +852,7 @@
       i32.gt_u
       br_if 0
     )
+  )
 
   ;; Itoa(number int) (*[]byte, int)
   ;; Uses the dirty buffer provided in BSS, returning a pointer into it which
@@ -893,7 +894,9 @@
       local.set $digit
 
       ;; *pointer = digit
-      (i32.store8 (local.get $pointer) (local.get $digit))
+      local.get $pointer
+      local.get $digit
+      i32.store8
 
       ;; decrement pointer
       local.get $pointer
@@ -914,8 +917,10 @@
 
     local.get $sign
     if
-      ;; write '-'
-      (i32.store8 (local.get $pointer) (i32.const 0x2D))
+      ;; *pointer = 0x2D
+      local.get $pointer
+      i32.const 0x2D
+      i32.store8
 
       ;; decrement pointer
       local.get $pointer
@@ -924,10 +929,14 @@
       local.set $pointer
     end
 
-    (return
-      (i32.add (local.get $pointer) (i32.const 1)) ;; *[]byte
-      (i32.sub (local.get $end_pointer) (local.get $pointer)) ;; int
-    )
+    ;; return (pointer+1, end_pointer-pointer)
+    local.get $pointer
+    i32.const 1
+    i32.add
+
+    local.get $end_pointer
+    local.get $pointer
+    i32.sub
   )
 
 
