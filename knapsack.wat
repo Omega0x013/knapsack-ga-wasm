@@ -180,12 +180,16 @@
 
     ;; Initialise the population with random individuals
     ;; random_get(&population, sizeof(population))
-    (call $wasi_unstable::random_get (global.get $population) (global.get $populationSize))
+    global.get $population
+    global.get $populationSize
+    call wasi_unstable::random_get
     if unreachable end
 
     (loop
       ;; Fill the random data segment
-      (call $wasi_unstable::random_get (global.get $randomSegment) (global.get $randomSize))
+      global.get $randomSegment
+      global.get $randomSize
+      call wasi_unstable::random_get
       if unreachable end
 
       ;; i = 0
@@ -416,7 +420,8 @@
     (local $sumFitness i32)
 
     ;; ptr = &population
-    (local.set $ptr (global.get $population))
+    global.get $population
+    local.set $ptr
 
     (loop
       ;; genome = *ptr
