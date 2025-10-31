@@ -110,7 +110,7 @@
   (global $stringCommaLen i32 (i32.const 1))
   (data (i32.const 51) "\n")
   (global $stringNewlinePtr i32 (i32.const 51))
-  (global $stringNewlineLen i32 (i32.const 51))
+  (global $stringNewlineLen i32 (i32.const 1))
 
   ;; ██    ██ ███    ██ ██ ████████ ██  █████  ██      ██ ███████ ███████ ██████  
   ;; ██    ██ ████   ██ ██    ██    ██ ██   ██ ██      ██ ██      ██      ██   ██ 
