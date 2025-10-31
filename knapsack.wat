@@ -178,6 +178,7 @@
   ;; Print the fitness of the fittest member in the final generation
 
 
+  ;; Main()
   (start $Main)
   (func $Main
     (local $fitness i32) ;; int
