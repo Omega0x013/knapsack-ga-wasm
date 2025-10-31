@@ -1,39 +1,31 @@
-<!-- Cut and pasted from its previous source -->
+# Knapsack Documentation
 
-## Docs: Program Parameters
+## Parameters
 
 You can adjust several characteristics about the genetic algorithm to see how they affect finding the solution and solution convergence:
 - `$generationCount` - Total run time of the program. If you're failing to find a solution consistently, try upping this until you do, so you can see how the other factors are impacting performance. Default is 20.
 - `$arenaCount` - Number of individuals per tournament. Larger number causes your GA to converge on a solution faster. Default is 3.
 - `$crossoverThreshold` - Chance out of 65536 of crossover occurring. Default is 52428 (80%).
 - `$mutationThreshold` - Chance out of 65536 of each bit in a genome mutating. Default is 655 (1%).
-For crossing over and mutation rates, higher values tend to lead to slower convergence.
-You can find these variables on lines 57-60 of [`knapsack.wat`](knapsack.wat).
-Fiddle with the values and then run the program again.
 
-## Docs: Memory Usage
+These values are stored in global constants found in lines `57`-`60`.
 
-Here is a not-entirely-to-scale diagram of the contents of my program's linear memory:
+## Linear Memory
 
-![Only a tiny portion of the memory is initialised](docs/memory.svg)
+Here is a not-entirely-to-scale diagram of the contents of Knapsack's linear memory:
+
+![Only a tiny portion of the memory is initialised](memory.svg)
 
 The intialised portion is hardcoded, and is filled when the program is first loaded.
-It contains the scenario data and the printable strings `: ` and `\n`.
-It only contains 33 bytes of data, but has 100 bytes of space in case I need to add more.
+It contains the scenario data, and the strings needed to output valid CSV.
 
-The uninitialised portion is filled programmatically.
-1. The section in contains buffers for the I/O functions.
-2. `population` is a massive array containing pairs of genomes and fitnesses.
-3. `next` has the same structure as `population`, except that its fitnesses are never filled.
+Starting at `200` is the uninitialised portion, which is filled as the program runs.
+1. A small set of buffers used by `$Print` and `$Itoa`.
+2. `population` - the current individuals and their fitnesses.
+3. `next` - space for the next generation to be stored.
+4. `selectionRandom` - random numbers used to decide which individuals are selected for the tournaments.
+5. `crossoverRandom` - random numbers used to decide whether or not crossing over occurs, and at what point.
+6. `mutationRandom` - random numbers used to decide which bits to flip during mutation.
 
-At the beginning of the program, `population` is filled with random numbers,
-seeding the individuals for the first generation.
-The segment indicated by the dashed line is called `randomSegment`.
-It contains three arrays used to make random decisions throughout the program.
-To reduce overheads, these three arrays are filled all at once with a single call to `wasi_unstable::random_get`.
-
-4. `selectionRandom` is used in three `u16`s to select the individuals in each tournament.
-5. `crossoverRandom` is used in two parts:
-    1. A `u16` to decide whether or not crossing over will occur.
-    2. A `u32` to fairly decide the crossing point.
-6. `mutationRandom` is used as 10 `u16`s to decide whether or not to flip each of the 10 bits in a genome.
+At the beginning of the program, `population` is filled with random bytes, generating the intial population.
+Each generation, `selectionRandom`, `crossoverRandom`, and `mutationRandom` are filled with random bytes, providing the randomness for that generation.
