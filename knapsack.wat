@@ -182,14 +182,14 @@
     ;; random_get(&population, sizeof(population))
     global.get $population
     global.get $populationSize
-    call wasi_unstable::random_get
+    call $wasi_unstable::random_get
     if unreachable end
 
     (loop
       ;; Fill the random data segment
       global.get $randomSegment
       global.get $randomSize
-      call wasi_unstable::random_get
+      call $wasi_unstable::random_get
       if unreachable end
 
       ;; i = 0
@@ -738,56 +738,53 @@
   ;; PrintGeneration(number, mean, fittest int)
   ;; print(`${number} : ${fittest}\n`)
   (func $PrintGeneration (param $number i32) (param $mean i32) (param $fittest i32)
-    ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    i32.const 1
+    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     (call $Itoa (local.get $number))
-    call $Write
+    call $Print
     if unreachable end
 
-    ;; if Write(1, *": ", 2) != nil: throw
-    (call $Write (i32.const 1) (i32.const 30) (i32.const 2))
+    ;; if Print(1, *": ", 2) != nil: throw
+    (call $Print (i32.const 30) (i32.const 2))
     if unreachable end
 
     ;;
 
-    ;; if Write(1, *"Mean = ", 7) != nil: throw
-    (call $Write (i32.const 1) (i32.const 39) (i32.const 7))
+    ;; if Print(1, *"Mean = ", 7) != nil: throw
+    (call $Print (i32.const 39) (i32.const 7))
     if unreachable end
 
-    ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    i32.const 1
+    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     (call $Itoa (local.get $mean))
-    call $Write
+    call $Print
     if unreachable end
 
-    ;; if Write(1, *", ", 2) != nil: throw
-    (call $Write (i32.const 1) (i32.const 46) (i32.const 2))
+    ;; if Print(1, *", ", 2) != nil: throw
+    (call $Print (i32.const 46) (i32.const 2))
     if unreachable end
 
     ;;
 
-    ;; if Write(1, *"Max = ", 6) != nil: throw
-    (call $Write (i32.const 1) (i32.const 33) (i32.const 6))
+    ;; if Print(1, *"Max = ", 6) != nil: throw
+    (call $Print (i32.const 33) (i32.const 6))
     if unreachable end
 
-    ;; if Write(1, ...Itoa(number, *itoaBuffer)) != nil: throw
-    i32.const 1
+    ;; if Print(1, ...Itoa(number, *itoaBuffer)) != nil: throw
     (call $Itoa (local.get $fittest))
-    call $Write
+    call $Print
     if unreachable end
 
     ;;
 
-    ;; if Write(1, *"\n", 1) != nil: throw
-    (call $Write (i32.const 1) (i32.const 32) (i32.const 1))
+    ;; if Print(1, *"\n", 1) != nil: throw
+    (call $Print (i32.const 32) (i32.const 1))
     if unreachable end
   )
 
-  ;; Write(descriptor int, pointer *[]byte, length int) error
+  ;; Print(pointer *[]byte, length int) error
   ;; Takes a file descriptor to be written to (STDOUT = 1; STDERR = 2)
   ;; and a pointer to a string and the number of bytes to write.
   ;; Error is an int; if error != 0 (nil), there's an error.
-  (func $Write (param $descriptor i32) (param $pointer i32) (param $length i32) (result i32)
+  (func $Print (param $pointer i32) (param $length i32) (result i32)
     ;; Keep track of the number of bytes already written
     (local $written i32)
     (local $nwritten i32)
@@ -803,7 +800,7 @@
       (i32.store (global.get $writeLen) (i32.sub (local.get $length) (local.get $written)))
       ;; Call underlying write function
       (call $wasi_unstable::fd_write
-        (local.get $descriptor) ;; Stdout
+        (i32.const 1) ;; Stdout
         (global.get $writePtr) ;; *[]IOVec
         (i32.const 1) ;; IOVec count
         (global.get $writeRet) ;; *nwritten
