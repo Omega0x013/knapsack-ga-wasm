@@ -30,12 +30,10 @@
   ;;   ██   ██  ██  ██ ██      ██    ██ ██   ██    ██         ██ 
   ;; ██████ ██      ██ ██       ██████  ██   ██    ██    ███████ 
 
-  ;; wasi_unstable::fd_write(descriptor int, iovec *[]IOVec, iovec_count int, written *int) error
-  (import "wasi_unstable" "fd_write" (func $wasi_unstable::fd_write (param i32 i32 i32 i32) (result i32)))
-
-  ;; wasi_unstable::random_get(buffer *[]byte, length int) error
-  (import "wasi_unstable" "random_get" (func $wasi_unstable::random_get (param i32 i32) (result i32)))
-
+  (import "knapsack" "random_get" (func $random_get (param i32 i32) (result i32)))
+  (import "knapsack" "ARENA_SIZE" (global $arenaCount i32))
+  (import "knapsack" "CROSSOVER_THRESHOLD" (global $crossoverThreshold i32))
+  (import "knapsack" "MUTATION_THRESHOLD" (global $mutationThreshold i32))
 
   ;; ██████   █████  ████████  █████  
   ;; ██   ██ ██   ██    ██    ██   ██ 
@@ -51,13 +49,6 @@
   ;; ██████  ███████ ██████  ███████ ██ ████ ██ █████      ██    █████   ██████  ███████ 
   ;; ██      ██   ██ ██   ██ ██   ██ ██  ██  ██ ██         ██    ██      ██   ██      ██ 
   ;; ██      ██   ██ ██   ██ ██   ██ ██      ██ ███████    ██    ███████ ██   ██ ███████ 
-
-  ;;
-  ;; GA Parameters
-  (global $generationCount i32 (i32.const 20)) ;; generations to run for
-  (global $arenaCount i32 (i32.const 3)) ;; individuals per arena - if you choose to adjust this upward, you may have to make selectionRandom larger to accomodate
-  (global $crossoverThreshold i32 (i32.const 52428)) ;; default = 52428 = ~80%
-  (global $mutationThreshold i32 (i32.const 655)) ;; default = 655 = ~1%
   ;;
   ;; Scenario Parameters
   (global $capacity i32 (i32.const 35)) ;; 35u max weight
@@ -128,9 +119,9 @@
   (global $itoaBuffer i32 (i32.const 116)) ;; (16)
 
   ;; Place where the current generation is stored
-  (global $population i32 (i32.const 200)) ;; (800) [200][4]byte
+  (global $population (export "population") i32 (i32.const 200)) ;; (800) [200][4]byte
   (global $populationCount i32 (i32.const 200)) ;; len(population)
-  (global $populationSize i32 (i32.const 800)) ;; sizeof(population)
+  (global $populationSize (export "populationSize") i32 (i32.const 800)) ;; sizeof(population)
   (global $populationEnd i32 (i32.const 1000))
 
   ;; Place for the next generation to be written to
@@ -140,11 +131,11 @@
 
   ;; Random generation segments - filled with random_get before each generation.
   ;; $arenaSize
-  (global $randomSegment i32 (i32.const 1400)) ;; Explicit start of random segment
+  (global $randomSegment (export "randomSegment") i32 (i32.const 1400)) ;; Explicit start of random segment
   (global $selectionRandom i32 (i32.const 1400)) ;; (1200) [200][6]byte
   (global $crossoverRandom i32 (i32.const 2600)) ;; (1200) [200][6]byte
   (global $mutationRandom i32 (i32.const 3800)) ;; (4000) [200][20]byte
-  (global $randomSize i32 (i32.const 6400)) ;; Number of random bytes to fill in
+  (global $randomSize (export "randomSize") i32 (i32.const 6400)) ;; Number of random bytes to fill in
   ;; Ends at 7800
 
   ;; ███    ███  █████  ██████ ███    ██ 
@@ -152,167 +143,104 @@
   ;; ██ ████ ██ ███████   ██   ██ ██  ██ 
   ;; ██  ██  ██ ██   ██   ██   ██  ██ ██ 
   ;; ██      ██ ██   ██ ██████ ██   ████ 
-  ;;
-  ;; Pseudocode:
-  ;; Fill Population with Random Data
-  ;; Loop
-  ;;   Fill Random Segment with Random Data
-  ;;   i := 0
-  ;;   Calculate the Population's fitnesses
-  ;;   Print the fitness of the fittest member
-  ;;   Loop
-  ;;     Select Left Parent
-  ;;     Select Right Parent
-  ;;     Left, Right = Crossover(Left, Right)
-  ;;     Mutate Left
-  ;;     Mutate Right
-  ;;     Next Generation <- Left, Right
-  ;;     i += 2
-  ;;     If i < Population Count Then Repeat
-  ;;   End
-  ;;   Copy Next Generation -> Population
-  ;;   generation += 1
-  ;;   If generation < Max Generations Then Repeat
-  ;; End
-  ;; Calculate fitnesses of the final generation
-  ;; Print the fitness of the fittest member in the final generation
 
+  ;; Generation() (int, int)
+  ;; Select, crossover, and mutate a new generation, then copy it into the place of the previous.
+  ;; The fitnesses have already been calculated for us, everything is in place.
+  (func $Generation (export "Generation")
+    (local $i i32)
+    (local $genome i32)
+    (local $fitness i32)
+    (local $left i32)
+    (local $right i32)
 
-  ;; Main()
-  (start $Main)
-  (func $Main
-    (local $fitness i32) ;; int
-    (local $genome i32) ;; genome
-    (local $i i32) ;; int
-    (local $generation i32) ;; int
-    (local $left i32) ;; genome
-    (local $right i32) ;; genome
-
-    ;; Initialise the population with random individuals
-    ;; random_get(&population, sizeof(population))
-    global.get $population
-    global.get $populationSize
-    call $wasi_unstable::random_get
+    ;; Fill the random data segment
+    global.get $randomSegment
+    global.get $randomSize
+    call $random_get
     if unreachable end
 
-    ;; Print CSV header
-    global.get $stringCSVHeaderPtr
-    global.get $stringCSVHeaderLen
-    call $Print
-
     (loop
-      ;; Fill the random data segment
-      global.get $randomSegment
-      global.get $randomSize
-      call $wasi_unstable::random_get
-      if unreachable end
+      ;; Get the left parent
+      ;; fitness, genome = Select(SelectionRandomAt(i))
+      local.get $i
+      call $SelectionRandomAt
+      call $Select
+      local.set $fitness
+      local.set $genome
 
-      ;; i = 0
-      i32.const 0
-      local.set $i
+      ;; left = genome
+      local.get $genome
+      local.set $left
 
-      ;; Calculate the population's fitnesses
-      local.get $generation
-      call $CalculateFitnesses
-      call $PrintGeneration
-
-      (loop
-        ;; Get the left parent
-        ;; fitness, genome = Select(SelectionRandomAt(i))
-        local.get $i
-        call $SelectionRandomAt
-        call $Select
-        local.set $fitness
-        local.set $genome
-
-        ;; left = genome
-        local.get $genome
-        local.set $left
-
-        ;; Get the right parent
-        ;; fitness, genome = Select(SelectionRandomAt(i+1))
-        local.get $i
-        i32.const 1
-        i32.add
-        call $SelectionRandomAt
-        call $Select
-        local.set $fitness
-        local.set $genome
-
-        ;; right = genome
-        local.get $genome
-        local.set $right
-
-        ;; left, right = Crossover(left, right, &crossoverRandom)
-        local.get $left
-        local.get $right
-        local.get $i
-        call $CrossoverRandomAt
-        call $Crossover
-        local.set $right
-        local.set $left
-
-        ;; left = Mutate(left)
-        local.get $left
-        local.get $i
-        call $MutationRandomAt
-        call $Mutate
-        local.set $left
-
-        ;; right = Mutate(right)
-        local.get $right
-        local.get $i
-        i32.const 1
-        i32.add
-        call $MutationRandomAt
-        call $Mutate
-        local.set $right
-
-        ;; next[i] = left
-        local.get $i
-        call $NextAt
-        local.get $left
-        i32.store16
-
-        ;; next[i+1] = right
-        local.get $i
-        i32.const 1
-        i32.add
-        call $NextAt
-        local.get $right
-        i32.store16
-
-        ;; if i += 2; i < populationCount { continue }
-        local.get $i
-        i32.const 2
-        i32.add
-        local.tee $i
-        global.get $populationCount
-        i32.lt_u
-        br_if 0
-      )
-
-      ;; population = next
-      global.get $population
-      global.get $next
-      global.get $populationSize
-      memory.copy
-
-      ;; if generation += 1; generation < generationCount { continue }
-      local.get $generation
+      ;; Get the right parent
+      ;; fitness, genome = Select(SelectionRandomAt(i+1))
+      local.get $i
       i32.const 1
       i32.add
-      local.tee $generation
-      global.get $generationCount
+      call $SelectionRandomAt
+      call $Select
+      local.set $fitness
+      local.set $genome
+
+      ;; right = genome
+      local.get $genome
+      local.set $right
+
+      ;; left, right = Crossover(left, right, &crossoverRandom)
+      local.get $left
+      local.get $right
+      local.get $i
+      call $CrossoverRandomAt
+      call $Crossover
+      local.set $right
+      local.set $left
+
+      ;; left = Mutate(left)
+      local.get $left
+      local.get $i
+      call $MutationRandomAt
+      call $Mutate
+      local.set $left
+
+      ;; right = Mutate(right)
+      local.get $right
+      local.get $i
+      i32.const 1
+      i32.add
+      call $MutationRandomAt
+      call $Mutate
+      local.set $right
+
+      ;; next[i] = left
+      local.get $i
+      call $NextAt
+      local.get $left
+      i32.store16
+
+      ;; next[i+1] = right
+      local.get $i
+      i32.const 1
+      i32.add
+      call $NextAt
+      local.get $right
+      i32.store16
+
+      ;; if i += 2; i < populationCount { continue }
+      local.get $i
+      i32.const 2
+      i32.add
+      local.tee $i
+      global.get $populationCount
       i32.lt_u
       br_if 0
     )
 
-    ;; Final Generation Max Fitness
-    ;; Calculate the population's fitnesses
-    local.get $generation
-    call $CalculateFitnesses
-    call $PrintGeneration
+    ;; population = next
+    global.get $population
+    global.get $next
+    global.get $populationSize
+    memory.copy
   )
 
   ;; ██████ ███    ██ ██████  ███████ ██   ██ 
@@ -429,7 +357,7 @@
   ;; CalculateFitnesses() int
   ;; Calculates the fitnesses for the population, modifying the individuals in place
   ;; Returns the fitness of the fittest indivdiual
-  (func $CalculateFitnesses (result i32 i32)
+  (func $CalculateFitnesses (export "CalculateFitnesses") (result i32 i32)
     (local $ptr i32)
     (local $genome i32)
     (local $fitness i32)
@@ -743,233 +671,5 @@
     )
 
     local.get $genome
-  )
-
-
-  ;; ██████     ██  ██████  
-  ;;   ██      ██  ██    ██ 
-  ;;   ██     ██   ██    ██ 
-  ;;   ██    ██    ██    ██ 
-  ;; ██████ ██      ██████  
-
-  ;; PrintGeneration(generation, mean, fittest int)
-  ;; print(`${number} : ${fittest}\n`)
-  (func $PrintGeneration (param $generation i32) (param $mean i32) (param $fittest i32)
-    ;; Print(Itoa(generation))
-    local.get $generation
-    call $Itoa
-    call $Print
-    
-    ;; ","
-    global.get $stringCommaPtr
-    global.get $stringCommaLen
-    call $Print
-
-    local.get $mean
-    call $Itoa
-    call $Print
-
-    ;; ","
-    global.get $stringCommaPtr
-    global.get $stringCommaLen
-    call $Print
-
-    local.get $fittest
-    call $Itoa
-    call $Print
-
-    ;; Print("\n", 1)
-    global.get $stringNewlinePtr
-    global.get $stringNewlineLen
-    call $Print
-  )
-
-  ;; Print(pointer *string, length int)
-  ;; Writes length bytes from pointer to STDOUT.
-  ;; Throws an error if STDOUT is closed.
-  (func $Print (param $pointer i32) (param $length i32)
-    ;; Keep track of the number of bytes that have been written
-    (local $written i32)
-    (local $failures i32)
-
-    ;; Work through the string, writing until it's all been written.
-    ;; If no bytes are written 3 times in a row, throws an error.
-    (loop
-      ;; Write pointer to IOVec
-      global.get $writePtr
-      local.get $pointer
-      i32.store
-
-      ;; Write length to IOVec
-      global.get $writeLen
-      local.get $length
-      i32.store
-
-      ;; Call WASI write function
-      ;; if wasi_unstable::fd_write(1, writePtr, 1, writeRet) != nil { panic }
-      i32.const 1
-      global.get $writePtr
-      i32.const 1
-      global.get $writeRet
-      call $wasi_unstable::fd_write
-      if unreachable end
-
-      ;; if written = *writeRet; nwritten == 0 {
-      global.get $writeRet
-      i32.load
-      local.tee $written
-      i32.eqz
-      if
-        ;; if failures >= 3 { panic }
-        local.get $failures
-        i32.const 3
-        i32.ge_u
-        if unreachable end
-
-        ;; failures += 1
-        local.get $failures
-        i32.const 1
-        i32.add
-
-        ;; Since no bytes were written, we can short-circuit
-        ;; continue
-        br 0
-      end
-
-      ;; We've written more than 0 bytes, so our failure streak (if any) is broken
-      i32.const 0
-      local.set $failures
-
-      ;; Increment pointer
-      ;; pointer = pointer + written
-      local.get $pointer
-      local.get $written
-      i32.add
-      local.set $pointer
-
-      ;; Decrement length
-      ;; if length = length - written; length > 0 { continue }
-      local.get $length
-      local.get $written
-      i32.sub
-      local.tee $length
-      i32.const 0
-      i32.gt_u
-      br_if 0
-    )
-  )
-
-  ;; Itoa(number int) (*[]byte, int)
-  ;; Uses the dirty buffer provided in BSS, returning a pointer into it which
-  ;; must be used to print the number before a new number can be converted
-  ;; you'd want a version of this which takes itoaBuffer as a parameter instead
-  (func $Itoa (param $number i32) (result i32 i32)
-    (local $pointer i32)
-    (local $end_pointer i32)
-    (local $sign i32)
-    (local $digit i32)
-
-    ;; end_pointer -> buffer[10]
-    ;; pointer = end_pointer
-    global.get $itoaBuffer
-    i32.const 10
-    i32.add
-    local.tee $end_pointer
-    local.set $pointer
-
-    ;; find number sign
-    local.get $number
-    i32.const 0
-    i32.lt_s
-    local.set $sign
-
-    ;; number = |number|
-    local.get $number
-    call $Abs
-    local.set $number
-
-    ;; build digits
-    (loop
-      ;; digit = number % 10 + '0'
-      local.get $number
-      i32.const 10
-      i32.rem_u
-      i32.const 0x30
-      i32.add
-      local.set $digit
-
-      ;; *pointer = digit
-      local.get $pointer
-      local.get $digit
-      i32.store8
-
-      ;; decrement pointer
-      local.get $pointer
-      i32.const 1
-      i32.sub
-      local.set $pointer
-
-      ;; shrink number by one place value
-      ;; number = number / 10
-      local.get $number
-      i32.const 10
-      i32.div_u
-      local.tee $number ;; preserving the value on the stack
-
-      ;; while number != 0, loop
-      br_if 0
-    )
-
-    local.get $sign
-    if
-      ;; *pointer = 0x2D
-      local.get $pointer
-      i32.const 0x2D
-      i32.store8
-
-      ;; decrement pointer
-      local.get $pointer
-      i32.const 1
-      i32.sub
-      local.set $pointer
-    end
-
-    ;; return (pointer+1, end_pointer-pointer)
-    local.get $pointer
-    i32.const 1
-    i32.add
-
-    local.get $end_pointer
-    local.get $pointer
-    i32.sub
-  )
-
-
-  ;; ███    ███  █████  ████████ ██   ██ 
-  ;; ████  ████ ██   ██    ██    ██   ██ 
-  ;; ██ ████ ██ ███████    ██    ███████ 
-  ;; ██  ██  ██ ██   ██    ██    ██   ██ 
-  ;; ██      ██ ██   ██    ██    ██   ██ 
-
-  ;; Abs(x int) int
-  ;; https://stackoverflow.com/a/14194764
-  ;; abs(x) = (x ^ y) - y
-  ;; where y = x >> 31
-  (func $Abs (param $x i32) (result i32)
-    (local $y i32)
-
-    ;; y = x >> 31
-    local.get $x
-    i32.const 31
-    i32.shr_s
-    local.tee $y
-
-    ;; x ^ y
-    local.get $x
-    i32.xor
-
-    ;; (x ^ y) - y
-    local.get $y
-    i32.sub
   )
 )

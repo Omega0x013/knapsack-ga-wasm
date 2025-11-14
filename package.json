@@ -1,0 +1,23 @@
+{
+  "name": "knapsack-ga-wasm",
+  "version": "1.0.0",
+  "description": "Knapsack Genetic Algorithm",
+  "homepage": "https://github.com/Omega0x013/knapsack-ga-wasm#readme",
+  "bugs": {
+    "url": "https://github.com/Omega0x013/knapsack-ga-wasm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omega0x013/knapsack-ga-wasm.git"
+  },
+  "license": "MPL-2.0",
+  "author": "Omega0x013",
+  "type": "module",
+  "main": "",
+  "scripts": {
+    "build:web": "cp -r src/* docs/",
+    "build:wat": "wat2wasm knapsack.wat -o docs/knapsack.wasm",
+    "build": "npm run build:web && npm run build:wat",
+    "start": "npx serve docs"
+  }
+}
